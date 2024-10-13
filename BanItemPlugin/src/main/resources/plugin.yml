@@ -5,6 +5,7 @@ author: Andross
 description: Ban item
 api-version: '1.13'
 softdepend: [AdvancedEnchantments, ItemsAdder, NBTAPI, WorldGuard]
+folia-supported: true
 commands:
   banitem:
     description: Banitem command. Show help.

@@ -17,6 +17,7 @@
  */
 package fr.andross.banitem;
 
+import com.tcoded.folialib.FoliaLib;
 import fr.andross.banitem.commands.BanCommand;
 import fr.andross.banitem.utils.Chat;
 import fr.andross.banitem.utils.metrics.Metrics;
@@ -37,11 +38,14 @@ import java.util.List;
 
 /**
  * BanItemPlugin
- * @version 3.4
+ *
  * @author Andross
+ * @version 3.4
  */
 public final class BanItem extends JavaPlugin {
+
     private static BanItem instance;
+    private FoliaLib foliaLib;
     private BanItemAPI api;
     private BanConfig banConfig;
     private BanHooks hooks;
@@ -52,9 +56,11 @@ public final class BanItem extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
+        foliaLib = new FoliaLib(this);
         api = new BanItemAPI(this);
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (!isEnabled()) return;
+        foliaLib.getScheduler().runLater(() -> {
+            if (!isEnabled())
+                return;
 
             // Metrics
             new Metrics(this, 7822);
@@ -64,14 +70,15 @@ public final class BanItem extends JavaPlugin {
 
             // Update checker
             if (banConfig.getConfig().getBoolean("check-update"))
-                Bukkit.getScheduler().runTaskAsynchronously(this, utils::checkForUpdate);
+                foliaLib.getScheduler().runAsync(task -> utils.checkForUpdate());
         }, 20L);
     }
 
     /**
      * (re)Loading the plugin with this configuration file.
      * If no config file set, using the default config.yml one.
-     * @param sender command sender <i>(send the message debug to)</i>
+     *
+     * @param sender     command sender <i>(send the message debug to)</i>
      * @param configFile the file configuration to load. If null, using (and reloading) the default config
      */
     public void load(@NotNull final CommandSender sender, @Nullable final File configFile) {
@@ -101,12 +108,16 @@ public final class BanItem extends JavaPlugin {
         final long end = System.currentTimeMillis();
         final boolean moredebug = banConfig.getConfig().getBoolean("debug.reload");
         if (moredebug) {
-            utils.sendMessage(sender, "&2Successfully loaded &e" + banDatabase.getBlacklist().getTotal() + "&2 blacklisted & &e" + banDatabase.getWhitelist().getTotal() + "&2 whitelisted item(s) &7&o[" + (end - start) + "ms]&2.");
+            utils.sendMessage(sender,
+                    "&2Successfully loaded &e" + banDatabase.getBlacklist().getTotal() + "&2 blacklisted & &e" + banDatabase.getWhitelist().getTotal() +
+                            "&2 whitelisted item(s) &7&o[" + (end - start) + "ms]&2.");
             utils.sendMessage(sender, "&2Listeners activated: &e" + listener.getActivated());
             utils.sendMessage(sender, "&2Meta items loaded: &e" + banDatabase.getMetaItems().size());
             utils.sendMessage(sender, "&2Custom items loaded: &e" + banDatabase.getCustomItems().size());
         } else
-            utils.sendMessage(sender, "&2Successfully loaded &e" + banDatabase.getBlacklist().getTotal() + "&2 blacklisted & &e" + banDatabase.getWhitelist().getTotal() + "&2 whitelisted item(s).");
+            utils.sendMessage(sender,
+                    "&2Successfully loaded &e" + banDatabase.getBlacklist().getTotal() + "&2 blacklisted & &e" + banDatabase.getWhitelist().getTotal() +
+                            "&2 whitelisted item(s).");
     }
 
     @Override
@@ -133,7 +144,8 @@ public final class BanItem extends JavaPlugin {
         // Trying to show help?
         if (!sender.hasPermission("banitem.command.help")) {
             final String message = getConfig().getString("no-permission");
-            if (message != null) utils.sendMessage(sender, message);
+            if (message != null)
+                utils.sendMessage(sender, message);
             return true;
         }
 
@@ -164,12 +176,16 @@ public final class BanItem extends JavaPlugin {
 
     @Nullable
     @Override
-    public List<String> onTabComplete(@NotNull final CommandSender sender, @NotNull final Command command, @NotNull final String alias, @NotNull final String[] args) {
+    public List<String> onTabComplete(@NotNull final CommandSender sender, @NotNull final Command command, @NotNull final String alias,
+                                      @NotNull final String[] args) {
         // Has permission?
-        if (!sender.hasPermission("banitem.command.help")) return Collections.emptyList();
+        if (!sender.hasPermission("banitem.command.help"))
+            return Collections.emptyList();
 
         // Sub command
-        if (args.length == 1) return StringUtil.copyPartialMatches(args[0], Arrays.asList("add", "check", "help", "info", "load", "log", "metaitem", "reload", "remove"), new ArrayList<>());
+        if (args.length == 1)
+            return StringUtil.copyPartialMatches(args[0], Arrays.asList("add", "check", "help", "info", "load", "log", "metaitem", "reload", "remove"),
+                    new ArrayList<>());
 
         // Running subcommand
         try {
@@ -187,6 +203,7 @@ public final class BanItem extends JavaPlugin {
     /**
      * Gives the current instance of the plugin.
      * The plugin should not be accessed this way, but rather with {@link org.bukkit.plugin.PluginManager#getPlugin(String)}
+     *
      * @return the current instance of the plugin
      */
     @NotNull
@@ -195,7 +212,17 @@ public final class BanItem extends JavaPlugin {
     }
 
     /**
+     * Get the {@link FoliaLib}
+     *
+     * @return the folia lib
+     */
+    public FoliaLib getFoliaLib() {
+        return foliaLib;
+    }
+
+    /**
      * Get the ban api
+     *
      * @return the ban item api
      */
     @NotNull
@@ -205,6 +232,7 @@ public final class BanItem extends JavaPlugin {
 
     /**
      * Get a the ban config helper
+     *
      * @return the ban config helper
      */
     @NotNull
@@ -214,6 +242,7 @@ public final class BanItem extends JavaPlugin {
 
     /**
      * Get the ban hooks
+     *
      * @return the ban hooks
      */
     public BanHooks getHooks() {
@@ -222,6 +251,7 @@ public final class BanItem extends JavaPlugin {
 
     /**
      * Get the ban database, containing blacklist, whitelist and customitems
+     *
      * @return the ban database
      */
     @NotNull
@@ -231,6 +261,7 @@ public final class BanItem extends JavaPlugin {
 
     /**
      * An utility class for the plugin
+     *
      * @return an utility class
      */
     @NotNull
@@ -240,10 +271,12 @@ public final class BanItem extends JavaPlugin {
 
     /**
      * Get the class that handle the listeners
+     *
      * @return the class that handle the listeners
      */
     @NotNull
     public BanListener getListener() {
         return listener;
     }
+
 }

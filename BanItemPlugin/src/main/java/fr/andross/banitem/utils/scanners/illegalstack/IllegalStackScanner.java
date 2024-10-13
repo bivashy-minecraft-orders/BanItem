@@ -17,6 +17,7 @@
  */
 package fr.andross.banitem.utils.scanners.illegalstack;
 
+import com.tcoded.folialib.wrapper.task.WrappedTask;
 import fr.andross.banitem.BanConfig;
 import fr.andross.banitem.BanItem;
 import fr.andross.banitem.BanUtils;
@@ -32,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A simple async scanner to check if players has illegal stacks into their inventories
@@ -39,17 +41,18 @@ import java.util.*;
  * @author Andross
  */
 public final class IllegalStackScanner {
-    private final BanItem pl;
+    private final BanItem plugin;
     private final BanUtils utils;
     private boolean enabledInConfig = false;
     private boolean enabled = false;
+    private WrappedTask task;
     private int taskId = -1;
     private final Map<World, Map<Material, IllegalStackItemConfig>> items = new HashMap<>();
     private boolean vanillaMaxStackSize = false;
     private IllegalStackBlockType defaultBlockType;
 
-    public IllegalStackScanner(@NotNull final BanItem pl, @NotNull final BanUtils utils) {
-        this.pl = pl;
+    public IllegalStackScanner(@NotNull final BanItem plugin, @NotNull final BanUtils utils) {
+        this.plugin = plugin;
         this.utils = utils;
     }
 
@@ -152,12 +155,14 @@ public final class IllegalStackScanner {
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
         if (enabled) {
-            if (taskId < 0)
-                taskId = pl.getServer().getScheduler().runTaskTimerAsynchronously(pl, () -> Bukkit.getOnlinePlayers().forEach(utils::checkPlayerIllegalStacks), 16L, 16L).getTaskId();
+            if (task == null)
+                task = plugin.getFoliaLib()
+                        .getScheduler()
+                        .runTimerAsync(() -> Bukkit.getOnlinePlayers().forEach(utils::checkPlayerIllegalStacks), 800, 800, TimeUnit.MILLISECONDS);
         } else {
-            if (taskId > -1) {
-                pl.getServer().getScheduler().cancelTask(taskId);
-                taskId = -1;
+            if (task != null) {
+                task.cancel();
+                task = null;
             }
         }
     }

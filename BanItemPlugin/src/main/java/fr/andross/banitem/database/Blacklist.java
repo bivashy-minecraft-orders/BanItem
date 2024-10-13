@@ -53,21 +53,21 @@ import java.util.*;
  * @author Andross
  */
 public final class Blacklist extends HashMap<World, Items> {
-    private final BanItem pl;
+    private final BanItem plugin;
 
     /**
      * Constructor for a blacklist map
-     * @param pl the main instance
+     * @param plugin the main instance
      * @param database the database instance
      * @param sender {@link CommandSender} to send the debug messages to
      * @param section {@link ConfigurationSection} which contains the blacklist node
      */
-    public Blacklist(@NotNull final BanItem pl, @NotNull final BanDatabase database, @NotNull final CommandSender sender, @Nullable final ConfigurationSection section) {
-        this.pl = pl;
+    public Blacklist(@NotNull final BanItem plugin, @NotNull final BanDatabase database, @NotNull final CommandSender sender, @Nullable final ConfigurationSection section) {
+        this.plugin = plugin;
         if (section == null) return;
 
         // Loading blacklist
-        final BanConfig banConfig = pl.getBanConfig();
+        final BanConfig banConfig = plugin.getBanConfig();
         for (final String worldKey : section.getKeys(false)) { // Looping through worlds
             // Getting world(s)
             final List<World> worlds = Listable.getWorlds(worldKey, new Debug(banConfig, sender, new DebugMessage(banConfig.getConfigName()), new DebugMessage("blacklist"), new DebugMessage(ListType.WORLD, worldKey)));
@@ -86,7 +86,7 @@ public final class Blacklist extends HashMap<World, Items> {
 
                 // Getting Actions & Actions data
                 final ConfigurationSection actionCs = itemsCs.getConfigurationSection(itemKey);
-                final Map<BanAction, BanActionData> actions = pl.getUtils().getBanActionsFromItemSection(worlds, actionCs, d);
+                final Map<BanAction, BanActionData> actions = plugin.getUtils().getBanActionsFromItemSection(worlds, actionCs, d);
                 if (actions.isEmpty()) continue;
 
                 // Adding into the map
@@ -177,7 +177,7 @@ public final class Blacklist extends HashMap<World, Items> {
 
             // Checking region data?
             if (dataMap.containsKey(BanDataType.REGION)) {
-                final IWorldGuardHook hook = pl.getHooks().getWorldGuardHook();
+                final IWorldGuardHook hook = plugin.getHooks().getWorldGuardHook();
                 if (hook != null) {
                     final Set<com.sk89q.worldguard.protection.regions.ProtectedRegion> regions = blacklistData.getData(BanDataType.REGION);
                     if (regions != null && !regions.isEmpty()) {
@@ -216,30 +216,31 @@ public final class Blacklist extends HashMap<World, Items> {
                     return false;
             } else {
                 // Bypass permission?
-                if (pl.getUtils().hasPermission(player, itemName, action, data))
+                if (plugin.getUtils().hasPermission(player, itemName, action, data))
                     return false;
             }
 
             // Calling event?
-            if (pl.getBanConfig().getConfig().getBoolean("api.playerbanitemevent")) {
+            if (plugin.getBanConfig().getConfig().getBoolean("api.playerbanitemevent")) {
                 final PlayerBanItemEvent e = new PlayerBanItemEvent(player, PlayerBanItemEvent.Type.BLACKLIST, item, action, blacklistData, data);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return false;
             }
 
             // Checking delete?
-            if (map.containsKey(BanAction.DELETE))
-                Bukkit.getScheduler().runTask(pl, () -> pl.getUtils().deleteItemFromInventoryView(player));
+            if (map.containsKey(BanAction.DELETE)) {
+                plugin.getFoliaLib().getScheduler().runAtEntity(player, (task) -> plugin.getUtils().deleteItemFromInventoryView(player));
+            }
 
             if (sendMessage) {
                 if (playerCooldown > 0) {
                     final List<String> message = blacklistData.getData(BanDataType.MESSAGE);
                     if (message != null) {
                         final long finalCooldown = playerCooldown;
-                        message.stream().map(m -> m.replace("{time}", pl.getUtils().getCooldownString(finalCooldown - System.currentTimeMillis()))).forEach(player::sendMessage);
+                        message.stream().map(m -> m.replace("{time}", plugin.getUtils().getCooldownString(finalCooldown - System.currentTimeMillis()))).forEach(player::sendMessage);
                     }
                 } else
-                    pl.getUtils().sendMessage(player, itemName, action, blacklistData);
+                    plugin.getUtils().sendMessage(player, itemName, action, blacklistData);
             }
 
             // Run?
